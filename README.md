@@ -1,6 +1,6 @@
-# SLAM
-SLAM
-Aaron's SLAM code copy
+# SLAM study note
+
+Aaron's SLAM code
 
 Homework from Udacity cs373 course
 http://classroom.udacity.com/courses/cs373/lessons/48723604/concepts/486709880923
