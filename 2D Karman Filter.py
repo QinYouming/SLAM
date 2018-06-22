@@ -148,7 +148,6 @@ def kalman_filter(x, P):
     for n in range(len(measurements)):
         # measurement update
         Z=matrix([[measurements[n]]])
-	Z.show()
         y=Z-H*x#error
         S=H*P*H.transpose()+R
         K=P*H.transpose() * S.inverse()
