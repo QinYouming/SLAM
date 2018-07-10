@@ -89,8 +89,6 @@ $ rostopic list
 $ ssh [从机id]@[从机IP]
 ```
 
-
-
 ## 手柄/键盘控车
 
 RoboRTS是由一个一个node（ROS里的程序，通常写在.cpp文件里）组成的。在ROS的世界里，这些node使用rostopic方式沟通。你可以把ROS想象成Youtube，这些node就是up主，他们会制造一些话题（rostopic）。当up主发布（pub）新的视频的时候，订阅的用户（subscribe）就能收到相对应的消息，而没有订阅的用户就收不到。
@@ -304,4 +302,171 @@ $ source devel/setup.bash
 ```
 $ rosrun roborts joy_teleop
 ```
+
+### 键盘控车node
+
+这个node的代码是来源于Turtlebot包里的turtlebot_teleop_key.py，在这里我们稍作了修改，加入了左右平移的功能。
+先贴完整代码：
+（如果想复现这个功能，可以在RobotRTS包内的/tools目录下新建一个名为key_teleop.py的文档并将以下代码复制到文档中。）
+
+```
+import rospy
+
+from geometry_msgs.msg import Twist
+
+import sys, select, termios, tty
+
+msg = """
+---------------------------
+Moving around:
+   foward/backward : w/s
+   shift left/right :a/d
+   spin left/right : j/k
+
+u/m : increase/decrease max speeds by 10%
+i/, : increase/decrease only linear speed by 10%
+o/. : increase/decrease only angular speed by 10%
+space key : force stop
+anything else : stop smoothly
+
+CTRL-C to quit
+"""
+
+moveBindings = {
+        'w':(1,0,0),  # index: 0-forward/backward   1-spinning left/right   2-shifting left/right
+        's':(-1,0,0),
+        'a':(0,0,1),
+        'd':(0,0,-1),
+        'j':(0,1,0),
+        'k':(0,-1,0),
+           }
+
+speedBindings={
+        'u':(1.1,1.1),
+        'm':(.9,.9),
+        'i':(1.1,1),
+        ',':(.9,1),
+        'o':(1,1.1),
+        '.':(1,.9),
+          }
+
+def getKey():
+    tty.setraw(sys.stdin.fileno())
+    rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+    if rlist:
+        key = sys.stdin.read(1)
+    else:
+        key = ''
+
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+    return key
+
+speed = .2
+y_speed = .2
+turn = 1
+
+def vels(speed,y_speed,turn):
+    return "currently:\tx_speed %s \ty_speed %s \tturn %s " % (speed,y_speed,turn)
+
+if __name__=="__main__":
+    settings = termios.tcgetattr(sys.stdin)
+    
+    rospy.init_node('turtlebot_teleop')
+    pub = rospy.Publisher('cmd_vel', Twist, queue_size=5)
+
+    x = 0
+    y = 0
+    th = 0
+    status = 0
+    count = 0
+    acc = 0.1
+    target_speed = 0
+    target_yspeed = 0
+    target_turn = 0
+    control_speed = 0
+    control_yspeed = 0
+    control_turn = 0
+    try:
+        print(msg)
+        print(vels(speed,y_speed,turn))
+        while(1):
+            key = getKey()
+            if key in moveBindings.keys():
+                x = moveBindings[key][0]
+                y = moveBindings[key][2]  # added to allow car's shifting left and right
+                th = moveBindings[key][1]
+                count = 0
+            elif key in speedBindings.keys():
+                speed = speed * speedBindings[key][0]
+                y_speed = y_speed * speedBindings[key][0]  
+                turn = turn * speedBindings[key][1]
+                count = 0
+
+                print(vels(speed,y_speed,turn))
+                if (status == 14):
+                    print(msg)
+                status = (status + 1) % 15
+            elif key == ' ':
+                x = 0
+                y = 0
+                th = 0
+                control_speed = 0
+                control_yspeed = 0
+                control_turn = 0
+            else:
+                count = count + 1
+                if count > 4:
+                    x = 0
+                    y = 0
+                    th = 0
+                if (key == '\x03'):
+                    break
+
+            target_speed = speed * x
+            target_yspeed = y_speed * y
+            target_turn = turn * th
+
+            if target_speed > control_speed:
+                control_speed = min( target_speed, control_speed + 0.02 )
+            elif target_speed < control_speed:
+                control_speed = max( target_speed, control_speed - 0.02 )
+            else:
+                control_speed = target_speed
+
+            if target_yspeed > control_yspeed:
+                control_yspeed = min( target_yspeed, control_yspeed + 0.02 )
+            elif target_yspeed < control_yspeed:
+                control_yspeed = max( target_yspeed, control_yspeed - 0.02 )
+            else:
+                control_yspeed = target_yspeed
+
+            if target_turn > control_turn:
+                control_turn = min( target_turn, control_turn + 0.1 )
+            elif target_turn < control_turn:
+                control_turn = max( target_turn, control_turn - 0.1 )
+            else:
+                control_turn = target_turn
+
+            twist = Twist()
+            twist.linear.x = control_speed; twist.linear.y = control_yspeed; twist.linear.z = 0
+            twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = control_turn
+            pub.publish(twist)
+
+            #print("loop: {0}".format(count))
+            #print("target: vx: {0}, wz: {1}".format(target_speed, target_turn))
+            #print("publihsed: vx: {0}, wz: {1}".format(twist.linear.x, twist.angular.z))
+
+    except Exception as e:
+        print(e)
+
+    finally:
+        twist = Twist()
+        twist.linear.x = 0; twist.linear.y = 0; twist.linear.z = 0
+        twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = 0
+        pub.publish(twist)
+
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+
+```
+
 
