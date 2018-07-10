@@ -116,7 +116,7 @@ source [主机RoboRTS所在路经]/RoboRTS_ros/devel/setup.bash
 
 *如用其他terminal，如zsh，请source setup.zsh*
 
-### 安装RoboRTS包
+#### 安装RoboRTS包
 
 建立一个ROS workspace，在src目录下输入以下command：
 ```
