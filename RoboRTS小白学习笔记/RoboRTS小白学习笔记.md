@@ -118,8 +118,10 @@ source [主机RoboRTS所在路经]/RoboRTS_ros/devel/setup.bash
 
 ### 安装RoboRTS包
 
-
-
+建立一个ROS workspace，在src目录下输入以下command：
+```
+$ git clone https://github.com/RoboMaster/RoboRTS.git
+```
 
 #### 安装teleop包
 
@@ -294,12 +296,12 @@ target_link_libraries(joy_teleop ${catkin_LIBRARIES})
 
 返回到workspace最上级目录并重新编译：
 ```
-  catkin_make
-  source devel/setup.bash
+$ catkin_make
+$ source devel/setup.bash
 ```
 
 连接好游戏手柄至电脑后，在terminal中跑这个node即可
 ```
-  rosrun roborts joy_teleop
+$ rosrun roborts joy_teleop
 ```
 
