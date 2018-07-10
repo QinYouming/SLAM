@@ -253,8 +253,8 @@ int main(int argc, char** argv)
   ros::Subscriber joy_sub_;
 ```
 
-定义Publisher将发布”cmd_vel"话题
-定义Subscriber将关注"joy“话题
+定义Publisher将发布”cmd_vel"话题;
+定义Subscriber将关注"joy“话题。
 ```
   vel_pub_ = ph_.advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
   joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &TurtlebotTeleop::joyCallback, this);
