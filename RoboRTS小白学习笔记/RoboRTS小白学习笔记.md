@@ -116,6 +116,11 @@ source [主机RoboRTS所在路经]/RoboRTS_ros/devel/setup.bash
 
 *如用其他terminal，如zsh，请source setup.zsh*
 
+### 安装RoboRTS包
+
+
+
+
 #### 安装teleop包
 
 为了实现用键盘和遥杆控制战车的目的，我们需要用到ROS官方tutorial里控制小乌龟程序的那个包。在terminal里输入以下命令安装teleop包：
@@ -164,8 +169,8 @@ $ rostopic echo /cmd_vel
 假设你手上有一个可连接到电脑上的游戏手柄，那我们可以在ROS环境下运行一个node，实现通过手柄去控制战车。详细地说，这个node的作用是去subscribe手柄的按键信息，再根据这些信息publish相对应的速度信息（cmd_vel），使得战车上的电脑可以接收到速度信息。
 
 这个node的代码是来源于Turtlebot包里的turtlebot_joy.cpp，在这里我们稍作了修改，加入了左右平移的功能。
-先贴完整代码，这个代码可以在RoboRTS包里的xxx目录下找到。
-
+先贴完整代码：
+（如果想复现这个功能，可以在RobotRTS包内的/tools目录下新建一个名为joy_teleop.cpp的文档并将以下代码复制到文档中。）
 ```
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
@@ -279,8 +284,22 @@ Publisher发布cmd_vel信息
   vel_pub_.publish(last_published_);
 ```
 
+添加了新文档后需要更新CMakelists并重新编译
+
+更新CMakelists:
+```
+add_executable(joy_teleop tools/joy_teleop.cpp)
+target_link_libraries(joy_teleop ${catkin_LIBRARIES})
+```
+
+返回到workspace最上级目录并重新编译：
+```
+  catkin_make
+  source devel/setup.bash
+```
+
 连接好游戏手柄至电脑后，在terminal中跑这个node即可
 ```
-  rosrun roborts modified_xbox360_teleop
+  rosrun roborts joy_teleop
 ```
 
