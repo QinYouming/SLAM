@@ -296,10 +296,6 @@ target_link_libraries(joy_teleop ${catkin_LIBRARIES})
 ```
 $ catkin_make
 $ source devel/setup.bash
-```[rosrun] Couldn't find executable named visualize_velocity_profile.py below                 /home/chacha/glocal/src/teb_local_planner_tutorials
-[rosrun] Found the following, but they're either not files,
-[rosrun] or not executable:
-[rosrun]   /home/chacha/glocal/src/teb_local_planner_tutorials/scripts/visualize_velocity_profile.py
 ```
 
 连接好游戏手柄至电脑后，在terminal中跑这个node即可
@@ -522,7 +518,7 @@ $ rosrun roborts key_teleop
 
 可以尝试以下解决方案：
 
-到joy_teleop.py所在的目录下，输入这个command：
+到key_teleop文档所在的目录下，输入这个command：
 ```
 $ chmod +x key_teleop
 ```
