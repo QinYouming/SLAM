@@ -300,6 +300,7 @@ $ source devel/setup.bash
 [rosrun] Found the following, but they're either not files,
 [rosrun] or not executable:
 [rosrun]   /home/chacha/glocal/src/teb_local_planner_tutorials/scripts/visualize_velocity_profile.py
+```
 
 连接好游戏手柄至电脑后，在terminal中跑这个node即可
 ```
