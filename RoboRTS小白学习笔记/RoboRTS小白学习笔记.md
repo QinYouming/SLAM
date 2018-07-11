@@ -164,7 +164,7 @@ $ rostopic echo /cmd_vel
 
 如果硬件连接没有问题，现在战车应该在以0.5的速度在往前跑。
 
-### 手柄控车node
+### 手柄控车node （C++）
 
 假设你手上有一个可连接到电脑上的游戏手柄，那我们可以在ROS环境下运行一个node，实现通过手柄去控制战车。详细地说，这个node的作用是去subscribe手柄的按键信息，再根据这些信息publish相对应的速度信息（cmd_vel），使得战车上的电脑可以接收到速度信息。
 
@@ -296,18 +296,22 @@ target_link_libraries(joy_teleop ${catkin_LIBRARIES})
 ```
 $ catkin_make
 $ source devel/setup.bash
-```
+```[rosrun] Couldn't find executable named visualize_velocity_profile.py below                 /home/chacha/glocal/src/teb_local_planner_tutorials
+[rosrun] Found the following, but they're either not files,
+[rosrun] or not executable:
+[rosrun]   /home/chacha/glocal/src/teb_local_planner_tutorials/scripts/visualize_velocity_profile.py
 
 连接好游戏手柄至电脑后，在terminal中跑这个node即可
 ```
 $ rosrun roborts joy_teleop
 ```
 
-### 键盘控车node
 
-这个node的代码是来源于Turtlebot包里的turtlebot_teleop_key.py，在这里我们稍作了修改，加入了左右平移的功能。
+### 键盘控车node （python）
+
+这个node的代码是来源于Turtlebot包里的turtlebot_teleop_key （python），在这里我们稍作了修改，加入了左右平移的功能。
 先贴完整代码：
-（如果想复现这个功能，可以在RobotRTS包内的/tools目录下新建一个名为key_teleop.py的文档并将以下代码复制到文档中。）
+（如果想复现这个功能，可以在RobotRTS包内的/tools目录下新建一个名为key_teleop的文档并将以下代码复制到文档中。）
 
 ```
 import rospy
@@ -501,3 +505,23 @@ def getKey():
             pub.publish(twist)
 ```
 
+添加新python文档后无需改动CMakelists，
+重新编译后，直接跑以下command即可：
+```
+$ rosrun roborts key_teleop
+```
+
+如果跑上面这个command时遇到以下问题：
+```
+[rosrun] Couldn't find executable named key_teleop below <the destination of where you put your key_teleop file>
+[rosrun] Found the following, but they're either not files,
+[rosrun] or not executable:
+[rosrun]   <the destination of where you put your key_teleop file>
+```
+
+可以尝试以下解决方案：
+
+到joy_teleop.py所在的目录下，输入这个command：
+```
+$ chmod +x key_teleop
+```
