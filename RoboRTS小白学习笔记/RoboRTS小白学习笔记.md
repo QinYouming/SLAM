@@ -471,4 +471,33 @@ if __name__=="__main__":
 
 需要关注的代码
 
+获取键盘信息
+```
+def getKey():
+    tty.setraw(sys.stdin.fileno())
+    rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+    if rlist:
+        key = sys.stdin.read(1)
+    else:
+        key = ''
+
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+    return key
+```
+
+创建Publisher并发布“cmd_vel"话题
+```
+    rospy.init_node('turtlebot_teleop')
+    pub = rospy.Publisher('cmd_vel', Twist, queue_size=5)
+```
+
+创建twist（message class Twist），
+并将速度信息赋予twist，
+最后发布twist
+```
+            twist = Twist()
+            twist.linear.x = control_speed; twist.linear.y = control_yspeed; twist.linear.z = 0
+            twist.angular.x = 0; twist.angular.y = 0; twist.angular.z = control_turn
+            pub.publish(twist)
+```
 
