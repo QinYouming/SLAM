@@ -194,7 +194,7 @@ private:
   double l_scale_, y_scale_, a_scale_;
   ros::Publisher vel_pub_;
   ros::Subscriber joy_sub_;
-
+joy
   geometry_msgs::Twist last_published_;
   boost::mutex publish_mutex_;
   bool deadman_pressed_;
@@ -217,7 +217,7 @@ TurtlebotTeleop::TurtlebotTeleop():
 
   vel_pub_ = ph_.advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
   joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &TurtlebotTeleop::joyCallback, this);
-
+joy
   timer_ = nh_.createTimer(ros::Duration(0.1), boost::bind(&TurtlebotTeleop::publish, this));
 }
 
@@ -230,7 +230,7 @@ void TurtlebotTeleop::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
   vel.linear.y = y_scale_*joy->axes[linear_y_];
   
   last_published_ = vel;
-}
+}joy
 
 void TurtlebotTeleop::publish()
 {
@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 
 ```
 
-需要关注的代码：
+需要关注的代码
 
 创建Publisher和Subscriber
 ```
@@ -468,5 +468,7 @@ if __name__=="__main__":
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
 
 ```
+
+需要关注的代码
 
 
