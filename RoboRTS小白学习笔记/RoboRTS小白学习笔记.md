@@ -571,49 +571,60 @@ int main(int argc, char** argv)
     ros::Subscriber odom_sub_;
 
 
-    vel_pub_ = ph_.advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
+    vel_pub_ = ph_.advertise<geometry_msgs::Twist>("cmd_vel", 20, true);
     odom_sub_ = nh_.subscribe<messages::Odometry>("/odom", 1, OdomCB);
 
 
     while(ros::ok()){
-
         switch (state)
         {
             case initialize1:
                 //Initialize starting position
+		sleep(1);//wait for the robot to initialize, or odom will not be accurate
                 ros::spinOnce();
                 last_position[0]=new_x;
                 last_position[1]=new_y;
                 state = x1y0;
+                std::cout << "initialize1" << std::endl;
                 break;
 
             case x1y0:
                 distance = 1.7;
                 if (getDistance(last_position)<=distance) {
-                    publishSpeed(vel_pub_, 1, 0);//keep going forward at speed of 0.5
-                }
-                else
+                    publishSpeed(vel_pub_, 0.5, 0);//keep going forward at speed of 0.5
+		    std::cout<<"Moving Forward         " << std::endl;
+		}
+                else {
+                    std::cout << "new_x: " <<new_x<< std::endl;
+                    std::cout << "new_y: " <<new_x<< std::endl;
+                    std::cout << "last_position0: " <<last_position[0]<< std::endl;
+                    std::cout << "last_position1: " <<last_position[1]<< std::endl;
                     state=initialize2;
+                }
                 ros::spinOnce();
                 break;
             case initialize2:
+                std::cout << "initialize2" << std::endl;
                 ros::spinOnce();
                 last_position[0]=new_x;
                 last_position[1]=new_y;
+
                 state = x0y1;
                 break;
             case x0y1:
                 distance = 1.7;
                 if (getDistance(last_position)<=distance) {
-                    publishSpeed(vel_pub_, 0, 1);//keep going forward at speed of 0.5
-                }
+                    publishSpeed(vel_pub_, 0, 0.5);//keep going forward at speed of 0.5
+		    std::cout<<"Moving Left           ";
+		}
                 else
                     state=stop;
                 ros::spinOnce();
                 break;
             case stop:
-                publishSpeed(vel_pub_, 0, 0);
-                break;
+                    std::cout<<"Stop              "<< std::endl;
+		    publishSpeed(vel_pub_, 0, 0);
+		break;
         }
 
 
@@ -629,7 +640,7 @@ void publishSpeed(ros::Publisher vel_pub_, float x, float y) {
     geometry_msgs::Twist vel;
     vel.linear.y = y;
     vel.linear.x = x;
-    std::cout << "pub cmd_vel: x["<<x<<"]    y["<<y<<"]"<< std::endl;
+    //std::cout << "            x["<<x<<"]    y["<<y<<"]"<< std::endl;
     vel_pub_.publish(vel);
 }
 
@@ -653,7 +664,6 @@ void OdomCB(const messages::Odometry::ConstPtr &msg) {
   new_x = msg->pose.pose.position.x;
   new_y = msg->pose.pose.position.y;
 }
-
 ```
 
 #### 需要关注的代码
@@ -670,6 +680,9 @@ odom数据是从3508电机的码盘获得的，通过对速度的积分会反馈
 
     enum MachineState{initialize1,x1y0,initialize2,x0y1,stop};
     MachineState state= initialize1;
+
+在首次初始化的时候请务必sleep(1)，否则odom的数据会不准确。
+
 
 
 在重新成功编译之后， 启动roboRTS package里的模拟机:
