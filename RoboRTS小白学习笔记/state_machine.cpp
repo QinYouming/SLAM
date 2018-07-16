@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2018, Youming Qin
- * DJI corp, RomoMaster, All rights reserved
+ * DJI Corp, RoboMaster, All rights reserved
  */
 
 #include <ros/ros.h>
@@ -37,10 +37,8 @@ int main(int argc, char** argv)
     odom_sub_ = nh_.subscribe<messages::Odometry>("/odom", 1, OdomCB);
 
 
-
     while(ros::ok()){
-
-        switch (state)
+C        switch (state)
         {
             case initialize1:
                 //Initialize starting position
