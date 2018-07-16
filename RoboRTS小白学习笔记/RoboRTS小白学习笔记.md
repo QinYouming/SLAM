@@ -89,7 +89,9 @@ $ rostopic list
 $ ssh [从机id]@[从机IP]
 ```
 
-## 手柄/键盘控车
+
+
+## 程序实例
 
 RoboRTS是由一个一个node（ROS里的程序，通常写在.cpp文件里）组成的。在ROS的世界里，这些node使用rostopic方式沟通。你可以把ROS想象成Youtube，这些node就是up主，他们会制造一些话题（rostopic）。当up主发布（pub）新的视频的时候，订阅的用户（subscribe）就能收到相对应的消息，而没有订阅的用户就收不到。
 
@@ -164,6 +166,8 @@ $ rostopic echo /cmd_vel
 
 如果硬件连接没有问题，现在战车应该在以0.5的速度在往前跑。
 
+
+
 ### 手柄控车node （C++）
 
 假设你手上有一个可连接到电脑上的游戏手柄，那我们可以在ROS环境下运行一个node，实现通过手柄去控制战车。详细地说，这个node的作用是去subscribe手柄的按键信息，再根据这些信息publish相对应的速度信息（cmd_vel），使得战车上的电脑可以接收到速度信息。
@@ -171,7 +175,7 @@ $ rostopic echo /cmd_vel
 这个node的代码是来源于Turtlebot包里的turtlebot_joy.cpp，在这里我们稍作了修改，加入了左右平移的功能。
 先贴完整代码：
 （如果想复现这个功能，可以在RobotRTS包内的/tools目录下新建一个名为joy_teleop.cpp的文档并将以下代码复制到文档中。）
-```
+```c++
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Joy.h>
@@ -250,7 +254,7 @@ int main(int argc, char** argv)
 
 ```
 
-需要关注的代码
+#### 需要关注的代码
 
 创建Publisher和Subscriber
 ```
@@ -310,7 +314,7 @@ $ rosrun roborts joy_teleop
 先贴完整代码：
 （如果想复现这个功能，可以在RobotRTS包内的/tools目录下新建一个名为key_teleop的文档并将以下代码复制到文档中。）
 
-```
+```python
 import rospy
 
 from geometry_msgs.msg import Twist
@@ -470,7 +474,7 @@ if __name__=="__main__":
 
 ```
 
-需要关注的代码
+#### 需要关注的代码
 
 获取键盘信息
 ```
@@ -518,7 +522,164 @@ $ rosrun roborts key_teleop
 
 可以尝试以下解决方案：
 
-到key_teleop文档所在的目录下，输入这个command：
+到key_teleop文档所在的目录下，输入一下command：
 ```
 $ chmod +x key_teleop
 ```
+
+
+
+### 状态机 State Machine
+
+本章的目的是实现一个开环的状态机，使得小车能前进指定距离，刹车，再平移一段指定距离。在tools的simulator文件夹下新建一个名为state_machine.cpp的文件，并再CmakeList里添加相关executable。state_machine.cpp的代码如下：
+
+```c++
+/*
+ * Copyright (c) 2018, Youming Qin
+ * DJI corp, RomoMaster, All rights reserved
+ */
+
+#include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Pose.h>
+//#include <nav_msgs/Odometry.h>
+#include "boost/thread/mutex.hpp"
+#include "boost/thread/thread.hpp"
+#include "messages/Odometry.h"
+#include "ros/console.h"
+//
+static float new_x;
+static float new_y;
+
+void publishSpeed(ros::Publisher vel_pub_, float x, float y);
+float getDistance(float last_position[2]);
+void OdomCB(const messages::Odometry::ConstPtr &msg);
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "state_rosmachine");
+
+    enum MachineState{initialize1,x1y0,initialize2,x0y1,stop};
+    MachineState state= initialize1;
+
+    double distance = 0;
+    float last_position[2];
+    ros::NodeHandle ph_, nh_;
+    ros::Publisher vel_pub_;
+    ros::Subscriber odom_sub_;
+
+
+    vel_pub_ = ph_.advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
+    odom_sub_ = nh_.subscribe<messages::Odometry>("/odom", 1, OdomCB);
+
+
+    while(ros::ok()){
+
+        switch (state)
+        {
+            case initialize1:
+                //Initialize starting position
+                ros::spinOnce();
+                last_position[0]=new_x;
+                last_position[1]=new_y;
+                state = x1y0;
+                break;
+
+            case x1y0:
+                distance = 1.7;
+                if (getDistance(last_position)<=distance) {
+                    publishSpeed(vel_pub_, 1, 0);//keep going forward at speed of 0.5
+                }
+                else
+                    state=initialize2;
+                ros::spinOnce();
+                break;
+            case initialize2:
+                ros::spinOnce();
+                last_position[0]=new_x;
+                last_position[1]=new_y;
+                state = x0y1;
+                break;
+            case x0y1:
+                distance = 1.7;
+                if (getDistance(last_position)<=distance) {
+                    publishSpeed(vel_pub_, 0, 1);//keep going forward at speed of 0.5
+                }
+                else
+                    state=stop;
+                ros::spinOnce();
+                break;
+            case stop:
+                publishSpeed(vel_pub_, 0, 0);
+                break;
+        }
+
+
+    }
+}
+
+
+/**
+ * \brief This function will publish a speed with
+ * \pre vel_pub_ -- a predefined Publisher
+ */
+void publishSpeed(ros::Publisher vel_pub_, float x, float y) {
+    geometry_msgs::Twist vel;
+    vel.linear.y = y;
+    vel.linear.x = x;
+    std::cout << "pub cmd_vel: x["<<x<<"]    y["<<y<<"]"<< std::endl;
+    vel_pub_.publish(vel);
+}
+
+
+/**
+ * \brief This function calculate the distance traveled from the "last_position"
+ * \param float last_position[0] -- the x location
+ *        float last_position[1] -- the y location
+ */
+float getDistance(float last_position[2]) {
+    return sqrt((new_x - last_position[0])*(new_x - last_position[0]) + (new_y - last_position[1])*(new_y - last_position[1]));
+}
+
+
+/**
+ * \brief Odometry callback Interrupt service routine
+ * This function will be excuted once the "ROS::spin()" or "ROS::spinOnce()" is called
+ * It will update the odom readings and store them into new_x and new_y
+ */
+void OdomCB(const messages::Odometry::ConstPtr &msg) {
+  new_x = msg->pose.pose.position.x;
+  new_y = msg->pose.pose.position.y;
+}
+
+```
+
+#### 需要关注的代码
+
+此程序与两个rostopic相关：
+
+    vel_pub_ = ph_.advertise<geometry_msgs::Twist>("cmd_vel", 1, true);
+    odom_sub_ = nh_.subscribe<messages::Odometry>("/odom", 1, OdomCB);
+odom数据是从3508电机的码盘获得的，通过对速度的积分会反馈出来一个行走的距离的数据。这个数据在每次spinOnce() 之后都会更新。cmd_vel数据控制底盘速度输出。因此我们在这里subscribe odom输入，并以此为依据advertise相关的底盘速度输出。
+
+
+
+状态机一共有5个state。具体原理为一开始初始化起点位置（initialize1/initialize2），发送相应速度直至已走路径到达指定地点(x1y0/x0y1)，重复以上两个动作直至终点（stop）。
+
+    enum MachineState{initialize1,x1y0,initialize2,x0y1,stop};
+    MachineState state= initialize1;
+
+
+在重新成功编译之后， 启动roboRTS package里的模拟机:
+
+```
+$ roslaunch roborts navigation_stage.launch 
+```
+
+随后运行roboRTS package 里的state_machine node:
+
+```
+$ roslaunch roborts navigation_stage.launch 
+```
+
+此时应该能看到小车向前行走1.7米后向左平移1.7米
