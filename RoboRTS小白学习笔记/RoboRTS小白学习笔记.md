@@ -1,5 +1,7 @@
 # RoboRTS小白学习笔记
 
+Copyright (c) 2018, DJI Corp, RoboMaster, All rights reserved
+
 ## 简介
 
 RoboRTS项目是基于ROS（Robot Operating System）实现的。为了现场调试便利，首先要做的是配置网络。配置完成后我们即可用一台装有linux系统的笔记本（主机）通过路由器远程与车载电脑（从机）通讯。
@@ -536,7 +538,7 @@ $ chmod +x key_teleop
 ```c++
 /*
  * Copyright (c) 2018, Youming Qin
- * DJI corp, RomoMaster, All rights reserved
+ * DJI Corp, RoboMaster, All rights reserved
  */
 
 #include <ros/ros.h>
